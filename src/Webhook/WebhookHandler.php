@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PixSicredi\Webhook;
 
 use PixSicredi\DTO\ReceivedPix;
+use PixSicredi\Events\PixReceivedEvent;
 use PixSicredi\Exceptions\ValidationException;
 
 /**
@@ -23,6 +24,9 @@ final class WebhookHandler
     /** @var list<string> */
     private array $expectedKeys = [];
 
+    /** @var list<callable(PixReceivedEvent):void> */
+    private array $listeners = [];
+
     /**
      * Restringe o processamento a chaves PIX conhecidas (defesa extra).
      *
@@ -33,6 +37,46 @@ final class WebhookHandler
         $this->expectedKeys = $keys;
 
         return $this;
+    }
+
+    /**
+     * Registra um listener chamado (via {@see self::handle()}) pra cada pix
+     * recebido. É aqui que o consumidor faz a baixa — em Laravel, normalmente
+     * re-emite um evento nativo ou despacha um job.
+     *
+     * @param callable(PixReceivedEvent):void $listener
+     */
+    public function onPixReceived(callable $listener): self
+    {
+        $this->listeners[] = $listener;
+
+        return $this;
+    }
+
+    /**
+     * Processa o webhook E dispara o {@see PixReceivedEvent} pra cada pix
+     * recebido, notificando os listeners registrados. Retorna os eventos
+     * disparados (vazio em chamada de validação).
+     *
+     * @return list<PixReceivedEvent>
+     *
+     * @throws ValidationException se o corpo não for JSON válido
+     */
+    public function handle(string $rawBody): array
+    {
+        $events = [];
+
+        foreach ($this->parse($rawBody) as $pix) {
+            $event = new PixReceivedEvent($pix);
+
+            foreach ($this->listeners as $listener) {
+                $listener($event);
+            }
+
+            $events[] = $event;
+        }
+
+        return $events;
     }
 
     /**

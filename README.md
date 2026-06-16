@@ -59,27 +59,39 @@ $pix->webhook()->delete('financeiro@cartorio.com.br');
 
 ### Webhook — receber a notificação (receiver)
 
-O Sicredi faz um `POST` na sua URL quando um pix é pago. O pacote interpreta o corpo;
-você expõe a rota e dispara sua lógica de baixa. Exemplo em Laravel:
+O Sicredi faz um `POST` na sua URL quando um pix é pago. O pacote interpreta o corpo
+e dispara um **`PixReceivedEvent`** pra cada pix recebido — você registra um listener
+com `onPixReceived()` e é lá que a **baixa** acontece. Exemplo em Laravel:
 
 ```php
+use PixSicredi\Events\PixReceivedEvent;
+
 // routes/api.php  →  Route::post('/webhook/pix', PixWebhookController::class)
 public function __invoke(Request $request)
 {
     $handler = (new PixSicredi($config))->webhookHandler()
-        ->withExpectedKeys(['financeiro@cartorio.com.br']); // defesa extra
+        ->withExpectedKeys(['financeiro@cartorio.com.br'])           // defesa extra
+        ->onPixReceived(function (PixReceivedEvent $event) {          // <- a baixa acontece aqui
+            DarBaixaPixJob::dispatch(
+                $event->pix->txid,
+                $event->pix->endToEndId,
+                $event->pix->amount,
+            );
+        });
 
     if ($handler->isValidationCall($request->getContent())) {
         return response()->json([], 200); // validação do Sicredi
     }
 
-    foreach ($handler->parse($request->getContent()) as $recebido) {
-        BaixarPixJob::dispatch($recebido->txid, $recebido->endToEndId, $recebido->amount);
-    }
+    $handler->handle($request->getContent()); // parseia + dispara o evento pra cada pix
 
     return response()->json([], 200);
 }
 ```
+
+> Em Laravel o listener costuma só **re-emitir um evento nativo** (`event(new PixRecebido(...))`)
+> ou **despachar um job**, mantendo a lógica de baixa no fluxo normal do framework.
+> Se quiser só os dados, sem evento, use `$handler->parse($body)` (retorna `ReceivedPix[]`).
 
 > **Segurança:** o Sicredi autentica o webhook por **mTLS** (apresenta certificado de cliente).
 > Valide-o na borda (nginx `ssl_verify_client on`) ou na aplicação — o handler só faz o parsing.

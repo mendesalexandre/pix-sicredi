@@ -62,4 +62,33 @@ final class WebhookHandlerTest extends TestCase
         $this->expectException(ValidationException::class);
         (new WebhookHandler())->parse('isso nao e json');
     }
+
+    public function test_handle_dispatches_event_to_listeners(): void
+    {
+        $recebidos = [];
+
+        $events = (new WebhookHandler())
+            ->onPixReceived(function ($event) use (&$recebidos): void {
+                $recebidos[] = $event->pix->txid;
+            })
+            ->handle($this->payload());
+
+        self::assertCount(1, $events);
+        self::assertSame('OS00537253C0060568916062026105534', $events[0]->pix->txid);
+        self::assertSame(['OS00537253C0060568916062026105534'], $recebidos);
+    }
+
+    public function test_handle_nao_dispara_em_chamada_de_validacao(): void
+    {
+        $chamado = false;
+
+        $events = (new WebhookHandler())
+            ->onPixReceived(function () use (&$chamado): void {
+                $chamado = true;
+            })
+            ->handle(json_encode(['evento' => 'teste'], JSON_THROW_ON_ERROR));
+
+        self::assertSame([], $events);
+        self::assertFalse($chamado);
+    }
 }
