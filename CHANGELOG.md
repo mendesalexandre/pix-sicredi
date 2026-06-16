@@ -20,4 +20,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
   CPF/CNPJ e valida valor, campos obrigatórios e tamanho. Aceito direto no `cob()->create()`.
 - Validação de `txid` (`[a-zA-Z0-9]{26,35}`) antes de chamar a API.
 - Auto-retry: chamadas autenticadas que recebem `401` invalidam o token e tentam 1x.
-- Framework-agnostic (Guzzle + PSR-16/PSR-3). 28 testes PHPUnit (com HTTP mockado) + PHPStan level 8.
+- `Charge`: DTO com visão tipada da resposta da cobrança (status, amount, location,
+  pixCopiaECola/copyPaste, expiration, createdAt) + `raw`.
+- `Txid`: gera `txid` válido — `random()` ou `fromSeed()` (determinístico, idempotente).
+- Framework-agnostic (Guzzle + PSR-16/PSR-3). 38 testes PHPUnit (com HTTP mockado,
+  incluindo Webhook/Pix e auto-retry 401) + PHPStan level 8.

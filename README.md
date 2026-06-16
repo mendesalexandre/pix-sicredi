@@ -41,8 +41,12 @@ Com o `CobBuilder` (tipado, detecta CPF/CNPJ, valida valor/campos):
 
 ```php
 use PixSicredi\Builders\CobBuilder;
+use PixSicredi\Support\Txid;
+use PixSicredi\DTO\Charge;
 
-$cobranca = $pix->cob()->create('OS00537253C0060568916062026105', CobBuilder::make()
+$txid = Txid::fromSeed('OS-537253'); // determinístico → idempotente (ou Txid::random())
+
+$resposta = $pix->cob()->create($txid, CobBuilder::make()
     ->expiration(3600)
     ->debtor('05314742160', 'Fulano de Tal')   // CPF (11) ou CNPJ (14), auto-detectado
     ->amount('3046.18')
@@ -50,7 +54,13 @@ $cobranca = $pix->cob()->create('OS00537253C0060568916062026105', CobBuilder::ma
     ->payerRequest('OS 537253')
     ->addInfo('Ordem de Serviço', '537253'));
 
-$cobranca = $pix->cob()->get($txid);
+// Acesso tipado à resposta (copia-e-cola pra montar o QR no front):
+$charge = Charge::fromArray($resposta);
+echo $charge->status;     // "ATIVA"
+echo $charge->copyPaste;  // "00020126..." (pixCopiaECola)
+echo $charge->location;   // URL do payload
+
+$charge = Charge::fromArray($pix->cob()->get($txid));
 ```
 
 > Também aceita array cru (`create($txid, [...])`). O `txid` é validado (`[a-zA-Z0-9]{26,35}`),
