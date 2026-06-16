@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace PixSicredi\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use PixSicredi\DTO\PixRecebido;
+use PixSicredi\DTO\ReceivedPix;
 
-final class PixRecebidoTest extends TestCase
+final class ReceivedPixTest extends TestCase
 {
-    public function test_de_array_mapeia_campos_e_preserva_raw(): void
+    public function test_from_array_maps_fields_and_keeps_raw(): void
     {
         $item = [
             'endToEndId' => 'E123',
@@ -21,21 +21,21 @@ final class PixRecebidoTest extends TestCase
             'componentesValor' => ['original' => ['valor' => '10.00']],
         ];
 
-        $pix = PixRecebido::deArray($item);
+        $pix = ReceivedPix::fromArray($item);
 
         self::assertSame('E123', $pix->endToEndId);
         self::assertSame('TX1', $pix->txid);
-        self::assertSame('10.00', $pix->valor);
-        self::assertSame('2026-06-16', $pix->horario?->format('Y-m-d'));
+        self::assertSame('10.00', $pix->amount);
+        self::assertSame('2026-06-16', $pix->dateTime?->format('Y-m-d'));
         self::assertSame($item['componentesValor'], $pix->raw['componentesValor']);
     }
 
-    public function test_de_array_tolera_campos_ausentes(): void
+    public function test_from_array_tolerates_missing_fields(): void
     {
-        $pix = PixRecebido::deArray(['endToEndId' => 'E1', 'valor' => '1.00']);
+        $pix = ReceivedPix::fromArray(['endToEndId' => 'E1', 'valor' => '1.00']);
 
         self::assertNull($pix->txid);
-        self::assertNull($pix->chave);
-        self::assertNull($pix->horario);
+        self::assertNull($pix->pixKey);
+        self::assertNull($pix->dateTime);
     }
 }

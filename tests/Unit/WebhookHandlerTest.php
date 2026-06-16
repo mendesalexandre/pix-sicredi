@@ -26,40 +26,40 @@ final class WebhookHandlerTest extends TestCase
         ], JSON_THROW_ON_ERROR);
     }
 
-    public function test_parseia_pix_recebido(): void
+    public function test_parses_received_pix(): void
     {
-        $recebidos = (new WebhookHandler())->processar($this->payload());
+        $received = (new WebhookHandler())->parse($this->payload());
 
-        self::assertCount(1, $recebidos);
-        self::assertSame('E0000000020260616105534abc', $recebidos[0]->endToEndId);
-        self::assertSame('OS00537253C0060568916062026105534', $recebidos[0]->txid);
-        self::assertSame('3046.18', $recebidos[0]->valor);
-        self::assertSame('financeiro.sinopfavo@gmail.com', $recebidos[0]->chave);
-        self::assertNotNull($recebidos[0]->horario);
+        self::assertCount(1, $received);
+        self::assertSame('E0000000020260616105534abc', $received[0]->endToEndId);
+        self::assertSame('OS00537253C0060568916062026105534', $received[0]->txid);
+        self::assertSame('3046.18', $received[0]->amount);
+        self::assertSame('financeiro.sinopfavo@gmail.com', $received[0]->pixKey);
+        self::assertNotNull($received[0]->dateTime);
     }
 
-    public function test_filtra_por_chaves_esperadas(): void
+    public function test_filters_by_expected_keys(): void
     {
-        $recebidos = (new WebhookHandler())
-            ->comChavesEsperadas(['outra@chave.com'])
-            ->processar($this->payload());
+        $received = (new WebhookHandler())
+            ->withExpectedKeys(['outra@chave.com'])
+            ->parse($this->payload());
 
-        self::assertSame([], $recebidos);
+        self::assertSame([], $received);
     }
 
-    public function test_ping_de_validacao_sem_pix(): void
+    public function test_validation_call_without_pix(): void
     {
         $handler = new WebhookHandler();
         $ping = json_encode(['evento' => 'teste'], JSON_THROW_ON_ERROR);
 
-        self::assertTrue($handler->ehPingDeValidacao($ping));
-        self::assertSame([], $handler->processar($ping));
-        self::assertFalse($handler->ehPingDeValidacao($this->payload()));
+        self::assertTrue($handler->isValidationCall($ping));
+        self::assertSame([], $handler->parse($ping));
+        self::assertFalse($handler->isValidationCall($this->payload()));
     }
 
-    public function test_lanca_em_json_invalido(): void
+    public function test_throws_on_invalid_json(): void
     {
         $this->expectException(ValidationException::class);
-        (new WebhookHandler())->processar('isso nao e json');
+        (new WebhookHandler())->parse('isso nao e json');
     }
 }

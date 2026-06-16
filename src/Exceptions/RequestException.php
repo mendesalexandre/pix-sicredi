@@ -14,20 +14,20 @@ namespace PixSicredi\Exceptions;
 class RequestException extends PixSicrediException
 {
     /**
-     * @param array<string,mixed>|null $corpo
+     * @param array<string,mixed>|null $body corpo já decodificado (se JSON)
      */
     public function __construct(
         string $message,
         public readonly int $statusCode = 0,
-        public readonly ?string $corpoBruto = null,
-        public readonly ?array $corpo = null,
+        public readonly ?string $rawBody = null,
+        public readonly ?array $body = null,
     ) {
         parent::__construct($message, $statusCode);
     }
 
     /** @return list<array{razao?:string,propriedade?:string}> */
-    public function violacoes(): array
+    public function violations(): array
     {
-        return $this->corpo['violacoes'] ?? [];
+        return $this->body['violacoes'] ?? [];
     }
 }

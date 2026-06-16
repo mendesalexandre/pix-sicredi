@@ -6,7 +6,7 @@ namespace PixSicredi\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use PixSicredi\Config;
-use PixSicredi\Enums\Ambiente;
+use PixSicredi\Enums\Environment;
 use PixSicredi\Exceptions\ValidationException;
 
 final class ConfigTest extends TestCase
@@ -25,14 +25,14 @@ final class ConfigTest extends TestCase
         return new Config(
             clientId: 'id',
             clientSecret: 'secret',
-            caminhoCertificado: $this->cert,
-            caminhoChave: $this->key,
-            ambiente: Ambiente::Homologacao,
+            certificatePath: $this->cert,
+            privateKeyPath: $this->key,
+            environment: Environment::Homologation,
             scopes: $scopes,
         );
     }
 
-    public function test_scopes_padrao_cobrem_cob_pix_webhook_sem_cobv(): void
+    public function test_default_scopes_cover_cob_pix_webhook_without_cobv(): void
     {
         $scopes = $this->config()->scopes;
 
@@ -43,23 +43,23 @@ final class ConfigTest extends TestCase
         self::assertNotContains('lotecobv.write', $scopes);
     }
 
-    public function test_aceita_scopes_customizados(): void
+    public function test_accepts_custom_scopes(): void
     {
         self::assertSame(['cob.read'], $this->config(['cob.read'])->scopes);
     }
 
-    public function test_base_url_vem_do_ambiente(): void
+    public function test_base_url_comes_from_environment(): void
     {
         self::assertSame('https://api-pix-h.sicredi.com.br', $this->config()->baseUrl());
     }
 
-    public function test_lanca_quando_credenciais_vazias(): void
+    public function test_throws_when_credentials_empty(): void
     {
         $this->expectException(ValidationException::class);
         new Config('', '', $this->cert, $this->key);
     }
 
-    public function test_lanca_quando_certificado_nao_existe(): void
+    public function test_throws_when_certificate_missing(): void
     {
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Certificado não encontrado');

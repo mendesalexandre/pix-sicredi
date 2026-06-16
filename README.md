@@ -21,24 +21,24 @@ composer require mendesalexandre/pix-sicredi
 ```php
 use PixSicredi\PixSicredi;
 use PixSicredi\Config;
-use PixSicredi\Enums\Ambiente;
+use PixSicredi\Enums\Environment;
 
 $pix = new PixSicredi(new Config(
-    clientId:           'SEU_CLIENT_ID',
-    clientSecret:       'SEU_CLIENT_SECRET',
-    caminhoCertificado: '/caminho/certificado.pem',
-    caminhoChave:       '/caminho/aplicacao.key',
-    ambiente:           Ambiente::Producao,   // ou Homologacao
-    senhaChave:         null,                 // se a chave tiver senha
-    cache:              $psr16Cache,          // opcional: cacheia o token (~5 min)
-    logger:             $psr3Logger,          // opcional
+    clientId:        'SEU_CLIENT_ID',
+    clientSecret:    'SEU_CLIENT_SECRET',
+    certificatePath: '/caminho/certificado.pem',
+    privateKeyPath:  '/caminho/aplicacao.key',
+    environment:     Environment::Production,  // ou Homologation
+    keyPassword:     null,                     // se a chave tiver senha
+    cache:           $psr16Cache,              // opcional: cacheia o token (~5 min)
+    logger:          $psr3Logger,              // opcional
 ));
 ```
 
 ### Criar cobrança (COB)
 
 ```php
-$cobranca = $pix->cob()->criar('OS00537253C006...', [
+$cobranca = $pix->cob()->create('OS00537253C006...', [
     'calendario' => ['expiracao' => 3600],
     'devedor'    => ['nome' => 'Fulano', 'cpf' => '05314742160'],
     'valor'      => ['original' => '3046.18'],
@@ -46,15 +46,15 @@ $cobranca = $pix->cob()->criar('OS00537253C006...', [
     'solicitacaoPagador' => 'OS 537253',
 ]);
 
-$cobranca = $pix->cob()->consultar($txid);
+$cobranca = $pix->cob()->get($txid);
 ```
 
 ### Webhook — registrar a URL no Sicredi
 
 ```php
-$pix->webhook()->configurar('financeiro@cartorio.com.br', 'https://seu-site.com.br/webhook/pix');
-$pix->webhook()->consultar('financeiro@cartorio.com.br');
-$pix->webhook()->excluir('financeiro@cartorio.com.br');
+$pix->webhook()->configure('financeiro@cartorio.com.br', 'https://seu-site.com.br/webhook/pix');
+$pix->webhook()->get('financeiro@cartorio.com.br');
+$pix->webhook()->delete('financeiro@cartorio.com.br');
 ```
 
 ### Webhook — receber a notificação (receiver)
@@ -67,14 +67,14 @@ você expõe a rota e dispara sua lógica de baixa. Exemplo em Laravel:
 public function __invoke(Request $request)
 {
     $handler = (new PixSicredi($config))->webhookHandler()
-        ->comChavesEsperadas(['financeiro@cartorio.com.br']); // defesa extra
+        ->withExpectedKeys(['financeiro@cartorio.com.br']); // defesa extra
 
-    if ($handler->ehPingDeValidacao($request->getContent())) {
+    if ($handler->isValidationCall($request->getContent())) {
         return response()->json([], 200); // validação do Sicredi
     }
 
-    foreach ($handler->processar($request->getContent()) as $recebido) {
-        BaixarPixJob::dispatch($recebido->txid, $recebido->endToEndId, $recebido->valor);
+    foreach ($handler->parse($request->getContent()) as $recebido) {
+        BaixarPixJob::dispatch($recebido->txid, $recebido->endToEndId, $recebido->amount);
     }
 
     return response()->json([], 200);
@@ -87,7 +87,7 @@ public function __invoke(Request $request)
 ### Devolução
 
 ```php
-$pix->pix()->devolver($endToEndId, 'idDevolucao01', '10.00', 'estorno');
+$pix->pix()->refund($endToEndId, 'idDevolucao01', '10.00', 'estorno');
 ```
 
 ## Notas de implementação

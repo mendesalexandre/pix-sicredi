@@ -15,51 +15,51 @@ final class Cob extends Resource
      * Cria/atualiza a cobrança com um txid escolhido pelo cliente (26–35 chars).
      * PUT é idempotente: repetir o mesmo txid não duplica.
      *
-     * @param array<string,mixed> $dados payload BACEN (calendario, devedor, valor, chave, solicitacaoPagador, infoAdicionais)
+     * @param array<string,mixed> $data payload BACEN (calendario, devedor, valor, chave, solicitacaoPagador, infoAdicionais)
      * @return array<string,mixed>
      */
-    public function criar(string $txid, array $dados): array
+    public function create(string $txid, array $data): array
     {
-        return $this->chamar('PUT', "/cob/{$txid}", $dados)->json();
+        return $this->call('PUT', "/cob/{$txid}", $data)->json();
     }
 
     /**
      * Cria a cobrança deixando o Sicredi gerar o txid (POST).
      *
-     * @param array<string,mixed> $dados
+     * @param array<string,mixed> $data
      * @return array<string,mixed>
      */
-    public function criarSemTxid(array $dados): array
+    public function createWithGeneratedTxid(array $data): array
     {
-        return $this->chamar('POST', '/cob', $dados)->json();
+        return $this->call('POST', '/cob', $data)->json();
     }
 
     /** @return array<string,mixed> */
-    public function consultar(string $txid): array
+    public function get(string $txid): array
     {
-        return $this->chamar('GET', "/cob/{$txid}")->json();
+        return $this->call('GET', "/cob/{$txid}")->json();
     }
 
     /**
-     * Revisa uma cobrança existente (PATCH) — ex: alterar status pra REMOVIDA_PELO_USUARIO_RECEBEDOR.
+     * Revisa uma cobrança existente (PATCH) — ex: status REMOVIDA_PELO_USUARIO_RECEBEDOR.
      *
-     * @param array<string,mixed> $dados
+     * @param array<string,mixed> $data
      * @return array<string,mixed>
      */
-    public function revisar(string $txid, array $dados): array
+    public function update(string $txid, array $data): array
     {
-        return $this->chamar('PATCH', "/cob/{$txid}", $dados)->json();
+        return $this->call('PATCH', "/cob/{$txid}", $data)->json();
     }
 
     /**
      * Lista cobranças por período (datas em ISO 8601). Filtros extras opcionais:
      * cpf, cnpj, status, paginacao.paginaAtual, paginacao.itensPorPagina.
      *
-     * @param array<string,scalar> $filtrosExtras
+     * @param array<string,scalar> $extraFilters
      * @return array<string,mixed>
      */
-    public function listar(string $inicio, string $fim, array $filtrosExtras = []): array
+    public function list(string $start, string $end, array $extraFilters = []): array
     {
-        return $this->chamar('GET', '/cob', null, ['inicio' => $inicio, 'fim' => $fim] + $filtrosExtras)->json();
+        return $this->call('GET', '/cob', null, ['inicio' => $start, 'fim' => $end] + $extraFilters)->json();
     }
 }

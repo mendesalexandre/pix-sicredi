@@ -7,7 +7,7 @@ namespace PixSicredi\DTO;
 use DateTimeImmutable;
 
 /** Um pix recebido, conforme entregue na notificação de webhook do Sicredi. */
-final class PixRecebido
+final class ReceivedPix
 {
     /**
      * @param array<string,mixed> $raw payload cru do item (pra campos não mapeados)
@@ -15,30 +15,30 @@ final class PixRecebido
     public function __construct(
         public readonly string $endToEndId,
         public readonly ?string $txid,
-        public readonly string $valor,
-        public readonly ?DateTimeImmutable $horario,
-        public readonly ?string $chave,
-        public readonly ?string $infoPagador,
+        public readonly string $amount,
+        public readonly ?DateTimeImmutable $dateTime,
+        public readonly ?string $pixKey,
+        public readonly ?string $payerInfo,
         public readonly array $raw = [],
     ) {
     }
 
     /** @param array<string,mixed> $item */
-    public static function deArray(array $item): self
+    public static function fromArray(array $item): self
     {
-        $horario = null;
+        $dateTime = null;
         if (isset($item['horario']) && is_string($item['horario'])) {
             $ts = strtotime($item['horario']);
-            $horario = $ts !== false ? (new DateTimeImmutable())->setTimestamp($ts) : null;
+            $dateTime = $ts !== false ? (new DateTimeImmutable())->setTimestamp($ts) : null;
         }
 
         return new self(
             endToEndId: (string) ($item['endToEndId'] ?? $item['endToEndID'] ?? ''),
             txid: isset($item['txid']) ? (string) $item['txid'] : null,
-            valor: (string) ($item['valor'] ?? ''),
-            horario: $horario,
-            chave: isset($item['chave']) ? (string) $item['chave'] : null,
-            infoPagador: isset($item['infoPagador']) ? (string) $item['infoPagador'] : null,
+            amount: (string) ($item['valor'] ?? ''),
+            dateTime: $dateTime,
+            pixKey: isset($item['chave']) ? (string) $item['chave'] : null,
+            payerInfo: isset($item['infoPagador']) ? (string) $item['infoPagador'] : null,
             raw: $item,
         );
     }

@@ -37,23 +37,23 @@ final class Auth
             }
         }
 
-        [$token, $expiraEm] = $this->solicitarToken();
+        [$token, $expiresIn] = $this->requestToken();
 
         if ($cache !== null) {
-            $ttl = $expiraEm > 60 ? $expiraEm - 60 : self::CACHE_TTL_FALLBACK;
+            $ttl = $expiresIn > 60 ? $expiresIn - 60 : self::CACHE_TTL_FALLBACK;
             $cache->set(self::CACHE_KEY, $token, $ttl);
         }
 
         return $token;
     }
 
-    public function invalidarToken(): void
+    public function forgetToken(): void
     {
         $this->config->cache?->delete(self::CACHE_KEY);
     }
 
     /** @return array{0:string,1:int} [token, expires_in] */
-    private function solicitarToken(): array
+    private function requestToken(): array
     {
         $basic = base64_encode("{$this->config->clientId}:{$this->config->clientSecret}");
 
@@ -68,11 +68,11 @@ final class Auth
             ],
         );
 
-        if (! $res->sucesso()) {
-            $corpo = $res->json();
-            $detalhe = $corpo['error_description']
-                ?? $corpo['detail']
-                ?? $corpo['error']
+        if (! $res->successful()) {
+            $body = $res->json();
+            $detail = $body['error_description']
+                ?? $body['detail']
+                ?? $body['error']
                 ?? ($res->body !== '' ? $res->body : 'sem corpo na resposta');
 
             $this->config->logger?->error('[PIX Sicredi] Falha ao obter token', [
@@ -81,7 +81,7 @@ final class Auth
             ]);
 
             throw new AuthenticationException(
-                "Falha na autenticação PIX Sicredi (HTTP {$res->status}): {$detalhe}"
+                "Falha na autenticação PIX Sicredi (HTTP {$res->status}): {$detail}"
             );
         }
 
@@ -90,8 +90,8 @@ final class Auth
             throw new AuthenticationException('Token de acesso não retornado pelo Sicredi.');
         }
 
-        $expiraEm = (int) ($res->json()['expires_in'] ?? 0);
+        $expiresIn = (int) ($res->json()['expires_in'] ?? 0);
 
-        return [$token, $expiraEm];
+        return [$token, $expiresIn];
     }
 }

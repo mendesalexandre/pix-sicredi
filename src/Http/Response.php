@@ -8,17 +8,17 @@ namespace PixSicredi\Http;
 final class Response
 {
     /** @var array<string,mixed>|null */
-    private ?array $json;
+    private ?array $decoded;
 
     public function __construct(
         public readonly int $status,
         public readonly string $body,
     ) {
         $decoded = json_decode($body, true);
-        $this->json = is_array($decoded) ? $decoded : null;
+        $this->decoded = is_array($decoded) ? $decoded : null;
     }
 
-    public function sucesso(): bool
+    public function successful(): bool
     {
         return $this->status >= 200 && $this->status < 300;
     }
@@ -26,11 +26,11 @@ final class Response
     /** @return array<string,mixed> */
     public function json(): array
     {
-        return $this->json ?? [];
+        return $this->decoded ?? [];
     }
 
-    public function temJson(): bool
+    public function hasJson(): bool
     {
-        return $this->json !== null;
+        return $this->decoded !== null;
     }
 }

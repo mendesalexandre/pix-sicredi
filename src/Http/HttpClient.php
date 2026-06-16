@@ -27,19 +27,19 @@ final class HttpClient
             'base_uri' => $config->baseUrl(),
             'timeout' => $config->timeout,
             'http_errors' => false,
-            'cert' => $config->caminhoCertificado,
-            'ssl_key' => $config->senhaChave !== null
-                ? [$config->caminhoChave, $config->senhaChave]
-                : $config->caminhoChave,
-            'verify' => $config->caminhoCadeiaCa ?? true,
+            'cert' => $config->certificatePath,
+            'ssl_key' => $config->keyPassword !== null
+                ? [$config->privateKeyPath, $config->keyPassword]
+                : $config->privateKeyPath,
+            'verify' => $config->caBundlePath ?? true,
         ]);
     }
 
     /**
-     * @param array<string,string>      $headers
-     * @param array<string,mixed>|null  $json   corpo JSON
-     * @param array<string,string>      $form   corpo x-www-form-urlencoded
-     * @param array<string,scalar>      $query
+     * @param array<string,string>     $headers
+     * @param array<string,mixed>|null $json   corpo JSON
+     * @param array<string,string>     $form   corpo x-www-form-urlencoded
+     * @param array<string,scalar>     $query
      */
     public function send(
         string $method,

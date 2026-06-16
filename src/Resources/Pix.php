@@ -13,41 +13,41 @@ namespace PixSicredi\Resources;
 final class Pix extends Resource
 {
     /** @return array<string,mixed> */
-    public function consultar(string $endToEndId): array
+    public function get(string $endToEndId): array
     {
-        return $this->chamar('GET', "/pix/{$endToEndId}")->json();
+        return $this->call('GET', "/pix/{$endToEndId}")->json();
     }
 
     /**
      * Lista pix recebidos por período (ISO 8601).
      *
-     * @param array<string,scalar> $filtrosExtras
+     * @param array<string,scalar> $extraFilters
      * @return array<string,mixed>
      */
-    public function listar(string $inicio, string $fim, array $filtrosExtras = []): array
+    public function list(string $start, string $end, array $extraFilters = []): array
     {
-        return $this->chamar('GET', '/pix', null, ['inicio' => $inicio, 'fim' => $fim] + $filtrosExtras)->json();
+        return $this->call('GET', '/pix', null, ['inicio' => $start, 'fim' => $end] + $extraFilters)->json();
     }
 
     /**
      * Solicita devolução (total ou parcial) de um pix recebido.
-     * O `idDevolucao` é gerado pelo cliente (idempotente).
+     * O `refundId` é gerado pelo cliente (idempotente).
      *
      * @return array<string,mixed>
      */
-    public function devolver(string $endToEndId, string $idDevolucao, string $valor, ?string $descricao = null): array
+    public function refund(string $endToEndId, string $refundId, string $amount, ?string $description = null): array
     {
-        $dados = ['valor' => $valor];
-        if ($descricao !== null) {
-            $dados['descricao'] = $descricao;
+        $data = ['valor' => $amount];
+        if ($description !== null) {
+            $data['descricao'] = $description;
         }
 
-        return $this->chamar('PUT', "/pix/{$endToEndId}/devolucao/{$idDevolucao}", $dados)->json();
+        return $this->call('PUT', "/pix/{$endToEndId}/devolucao/{$refundId}", $data)->json();
     }
 
     /** @return array<string,mixed> */
-    public function consultarDevolucao(string $endToEndId, string $idDevolucao): array
+    public function getRefund(string $endToEndId, string $refundId): array
     {
-        return $this->chamar('GET', "/pix/{$endToEndId}/devolucao/{$idDevolucao}")->json();
+        return $this->call('GET', "/pix/{$endToEndId}/devolucao/{$refundId}")->json();
     }
 }

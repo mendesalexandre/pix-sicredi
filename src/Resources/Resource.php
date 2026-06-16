@@ -29,7 +29,7 @@ abstract class Resource
      * @param array<string,mixed>|null $json
      * @param array<string,scalar>     $query
      */
-    protected function chamar(string $method, string $path, ?array $json = null, array $query = []): Response
+    protected function call(string $method, string $path, ?array $json = null, array $query = []): Response
     {
         $res = $this->http->send(
             method: $method,
@@ -39,15 +39,15 @@ abstract class Resource
             query: $query,
         );
 
-        if (! $res->sucesso()) {
-            $corpo = $res->temJson() ? $res->json() : null;
-            $detalhe = $corpo['detail'] ?? $corpo['title'] ?? ($res->body !== '' ? $res->body : 'sem corpo');
+        if (! $res->successful()) {
+            $body = $res->hasJson() ? $res->json() : null;
+            $detail = $body['detail'] ?? $body['title'] ?? ($res->body !== '' ? $res->body : 'sem corpo');
 
             throw new RequestException(
-                message: "Erro na API PIX Sicredi (HTTP {$res->status}): {$detalhe}",
+                message: "Erro na API PIX Sicredi (HTTP {$res->status}): {$detail}",
                 statusCode: $res->status,
-                corpoBruto: $res->body,
-                corpo: $corpo,
+                rawBody: $res->body,
+                body: $body,
             );
         }
 

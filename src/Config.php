@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace PixSicredi;
 
-use PixSicredi\Enums\Ambiente;
+use PixSicredi\Enums\Environment;
 use PixSicredi\Exceptions\ValidationException;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -12,10 +12,10 @@ use Psr\SimpleCache\CacheInterface;
 /**
  * Configuração da integração PIX Sicredi.
  *
- * Autenticação é mTLS: o Sicredi exige o certificado da APLICAÇÃO (cliente) +
- * chave privada. A senha da chave é opcional (depende de como o .key foi gerado).
- * `caminhoCadeiaCa` (opcional) aponta pra cadeia completa da AC do Sicredi pra
- * validar o servidor (CURLOPT_CAINFO); se null, usa o bundle de CAs do sistema.
+ * A autenticação é mTLS: o Sicredi exige o certificado da APLICAÇÃO (cliente) +
+ * a chave privada. A senha da chave (`keyPassword`) é opcional (depende de como
+ * o .key foi gerado). `caBundlePath` (opcional) aponta pra cadeia da AC do
+ * Sicredi pra validar o servidor; se null, usa o bundle de CAs do sistema.
  *
  * `cache` (PSR-16) e `logger` (PSR-3) são opcionais — o consumidor pluga os dele
  * (ex: o cache do Laravel) sem o pacote depender de nenhum framework.
@@ -31,11 +31,11 @@ final class Config
     public function __construct(
         public readonly string $clientId,
         public readonly string $clientSecret,
-        public readonly string $caminhoCertificado,
-        public readonly string $caminhoChave,
-        public readonly Ambiente $ambiente = Ambiente::Producao,
-        public readonly ?string $senhaChave = null,
-        public readonly ?string $caminhoCadeiaCa = null,
+        public readonly string $certificatePath,
+        public readonly string $privateKeyPath,
+        public readonly Environment $environment = Environment::Production,
+        public readonly ?string $keyPassword = null,
+        public readonly ?string $caBundlePath = null,
         public readonly int $timeout = 30,
         ?array $scopes = null,
         public readonly ?CacheInterface $cache = null,
@@ -44,23 +44,23 @@ final class Config
         if ($clientId === '' || $clientSecret === '') {
             throw new ValidationException('client_id e client_secret são obrigatórios.');
         }
-        if (! is_readable($caminhoCertificado)) {
-            throw new ValidationException("Certificado não encontrado/ilegível: {$caminhoCertificado}");
+        if (! is_readable($certificatePath)) {
+            throw new ValidationException("Certificado não encontrado/ilegível: {$certificatePath}");
         }
-        if (! is_readable($caminhoChave)) {
-            throw new ValidationException("Chave privada não encontrada/ilegível: {$caminhoChave}");
+        if (! is_readable($privateKeyPath)) {
+            throw new ValidationException("Chave privada não encontrada/ilegível: {$privateKeyPath}");
         }
 
-        $this->scopes = $scopes ?? self::scopesPadrao();
+        $this->scopes = $scopes ?? self::defaultScopes();
     }
 
     /**
-     * Conjunto de scopes para COB + Webhook + Devolução (escopo usado pelo SINOP).
+     * Scopes para COB + Webhook + Devolução (escopo usado pelo cartório).
      * COBV/LoteCobv ficam de fora de propósito — não são usados.
      *
      * @return list<string>
      */
-    public static function scopesPadrao(): array
+    public static function defaultScopes(): array
     {
         return [
             'cob.read',
@@ -74,6 +74,6 @@ final class Config
 
     public function baseUrl(): string
     {
-        return $this->ambiente->baseUrl();
+        return $this->environment->baseUrl();
     }
 }

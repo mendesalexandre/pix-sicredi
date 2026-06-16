@@ -8,7 +8,7 @@ namespace PixSicredi\Resources;
  * Configuração do webhook NO Sicredi (lado cliente) — /api/v2/webhook/{chave}.
  *
  * Isto registra a URL que o Sicredi vai CHAMAR quando um pix for recebido. O
- * recebimento/validação da chamada de volta é tratado por {@see \PixSicredi\Webhook\WebhookHandler}.
+ * recebimento/parsing da chamada de volta é tratado por {@see \PixSicredi\Webhook\WebhookHandler}.
  */
 final class Webhook extends Resource
 {
@@ -17,30 +17,30 @@ final class Webhook extends Resource
      *
      * @return array<string,mixed>
      */
-    public function configurar(string $chavePix, string $webhookUrl): array
+    public function configure(string $pixKey, string $webhookUrl): array
     {
-        return $this->chamar('PUT', "/webhook/{$chavePix}", ['webhookUrl' => $webhookUrl])->json();
+        return $this->call('PUT', "/webhook/{$pixKey}", ['webhookUrl' => $webhookUrl])->json();
     }
 
     /** @return array<string,mixed> */
-    public function consultar(string $chavePix): array
+    public function get(string $pixKey): array
     {
-        return $this->chamar('GET', "/webhook/{$chavePix}")->json();
+        return $this->call('GET', "/webhook/{$pixKey}")->json();
     }
 
-    public function excluir(string $chavePix): void
+    public function delete(string $pixKey): void
     {
-        $this->chamar('DELETE', "/webhook/{$chavePix}");
+        $this->call('DELETE', "/webhook/{$pixKey}");
     }
 
     /**
      * Lista os webhooks cadastrados.
      *
-     * @param array<string,scalar> $filtros
+     * @param array<string,scalar> $filters
      * @return array<string,mixed>
      */
-    public function listar(array $filtros = []): array
+    public function list(array $filters = []): array
     {
-        return $this->chamar('GET', '/webhook', null, $filtros)->json();
+        return $this->call('GET', '/webhook', null, $filters)->json();
     }
 }

@@ -16,14 +16,14 @@ use PixSicredi\Webhook\WebhookHandler;
  * ```php
  * $pix = new PixSicredi(new Config(
  *     clientId: '...', clientSecret: '...',
- *     caminhoCertificado: '/path/cert.pem', caminhoChave: '/path/app.key',
- *     ambiente: Ambiente::Producao,
+ *     certificatePath: '/path/cert.pem', privateKeyPath: '/path/app.key',
+ *     environment: Environment::Production,
  *     cache: $psr16, // opcional (cacheia o token)
  * ));
  *
- * $cobranca = $pix->cob()->criar($txid, [...]);
- * $pix->webhook()->configurar('chave@pix.com', 'https://meusite/webhook/pix');
- * $recebidos = $pix->webhookHandler()->processar($request->getBody());
+ * $cobranca = $pix->cob()->create($txid, [...]);
+ * $pix->webhook()->configure('chave@pix.com', 'https://meusite/webhook/pix');
+ * $recebidos = $pix->webhookHandler()->parse($request->getBody());
  * ```
  */
 final class PixSicredi
