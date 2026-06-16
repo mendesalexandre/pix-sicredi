@@ -139,7 +139,20 @@ public function __invoke(Request $request)
 ### Devolução
 
 ```php
-$pix->pix()->refund($endToEndId, 'idDevolucao01', '10.00', 'estorno');
+use PixSicredi\DTO\Refund;
+
+$refund = Refund::fromArray($pix->pix()->refund($endToEndId, 'idDevolucao01', '10.00', 'estorno'));
+$refund->isCompleted(); // status DEVOLVIDO
+```
+
+### Validar/detectar chave PIX
+
+```php
+use PixSicredi\Support\PixKey;
+
+PixKey::type('financeiro@cartorio.com.br'); // PixKeyType::Email
+PixKey::type('+5566999998888');             // PixKeyType::Phone
+PixKey::isValid('05314742160');             // true (CPF)
 ```
 
 ## Notas de implementação
@@ -153,8 +166,24 @@ $pix->pix()->refund($endToEndId, 'idDevolucao01', '10.00', 'estorno');
 ## Testes
 
 ```bash
-composer test   # PHPUnit
+composer test   # PHPUnit (unitários)
 composer stan   # PHPStan level 8
+```
+
+### Teste de integração (homologação)
+
+Os testes em `tests/Integration` batem na API real do Sicredi e **pulam
+automaticamente** se as variáveis abaixo não estiverem definidas (por isso o CI
+fica verde). Pra rodar:
+
+```bash
+export PIXSICREDI_CLIENT_ID=...      PIXSICREDI_CLIENT_SECRET=...
+export PIXSICREDI_CERT=/path/cert.pem PIXSICREDI_KEY=/path/app.key
+export PIXSICREDI_PIX_KEY=sua-chave-recebedora
+# opcionais: PIXSICREDI_KEY_PASS, PIXSICREDI_AMOUNT (default 0.01),
+#            PIXSICREDI_ENV (homologation|production), PIXSICREDI_CA
+
+vendor/bin/phpunit --testsuite Integration
 ```
 
 ## Licença

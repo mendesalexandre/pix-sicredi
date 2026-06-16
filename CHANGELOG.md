@@ -3,6 +3,16 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.3.0] — 2026-06-16
+
+### Adicionado
+
+- `PixKey` + enum `PixKeyType`: detecta/valida o tipo da chave (CPF/CNPJ/email/telefone/aleatória).
+- `Refund` DTO + enum `RefundStatus`: visão tipada da devolução (`isCompleted()`, datas).
+- Harness de teste de integração (`tests/Integration`) contra a API real do Sicredi
+  (homologação), via variáveis de ambiente, com auto-skip quando ausentes — CI segue verde.
+- 60 testes no total (58 unitários + 2 de integração que pulam sem credenciais).
+
 ## [0.2.0] — 2026-06-16
 
 ### Adicionado — Cobrança com vencimento (COBV)
