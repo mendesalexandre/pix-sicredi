@@ -31,13 +31,13 @@ abstract class Resource
      */
     protected function call(string $method, string $path, ?array $json = null, array $query = []): Response
     {
-        $res = $this->http->send(
-            method: $method,
-            url: self::API_PATH . $path,
-            headers: ['Authorization' => 'Bearer ' . $this->auth->getToken()],
-            json: $json,
-            query: $query,
-        );
+        $res = $this->send($method, $path, $json, $query);
+
+        // Token cacheado pode ter expirado/sido revogado: invalida e tenta 1x.
+        if ($res->status === 401) {
+            $this->auth->forgetToken();
+            $res = $this->send($method, $path, $json, $query);
+        }
 
         if (! $res->successful()) {
             $body = $res->hasJson() ? $res->json() : null;
@@ -52,5 +52,20 @@ abstract class Resource
         }
 
         return $res;
+    }
+
+    /**
+     * @param array<string,mixed>|null $json
+     * @param array<string,scalar>     $query
+     */
+    private function send(string $method, string $path, ?array $json, array $query): Response
+    {
+        return $this->http->send(
+            method: $method,
+            url: self::API_PATH . $path,
+            headers: ['Authorization' => 'Bearer ' . $this->auth->getToken()],
+            json: $json,
+            query: $query,
+        );
     }
 }

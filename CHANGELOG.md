@@ -16,4 +16,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - Evento `PixReceivedEvent` + `WebhookHandler::onPixReceived()` / `handle()`: dispara
   um evento por pix recebido pra o consumidor dar baixa (registrando um listener),
   sem o pacote depender do `event()` de nenhum framework.
-- Framework-agnostic (Guzzle + PSR-16/PSR-3). Testes PHPUnit + PHPStan level 8.
+- `CobBuilder`: monta o payload da cobrança de forma tipada/fluente, detecta
+  CPF/CNPJ e valida valor, campos obrigatórios e tamanho. Aceito direto no `cob()->create()`.
+- Validação de `txid` (`[a-zA-Z0-9]{26,35}`) antes de chamar a API.
+- Auto-retry: chamadas autenticadas que recebem `401` invalidam o token e tentam 1x.
+- Framework-agnostic (Guzzle + PSR-16/PSR-3). 28 testes PHPUnit (com HTTP mockado) + PHPStan level 8.

@@ -37,17 +37,24 @@ $pix = new PixSicredi(new Config(
 
 ### Criar cobrança (COB)
 
+Com o `CobBuilder` (tipado, detecta CPF/CNPJ, valida valor/campos):
+
 ```php
-$cobranca = $pix->cob()->create('OS00537253C006...', [
-    'calendario' => ['expiracao' => 3600],
-    'devedor'    => ['nome' => 'Fulano', 'cpf' => '05314742160'],
-    'valor'      => ['original' => '3046.18'],
-    'chave'      => 'financeiro@cartorio.com.br',
-    'solicitacaoPagador' => 'OS 537253',
-]);
+use PixSicredi\Builders\CobBuilder;
+
+$cobranca = $pix->cob()->create('OS00537253C0060568916062026105', CobBuilder::make()
+    ->expiration(3600)
+    ->debtor('05314742160', 'Fulano de Tal')   // CPF (11) ou CNPJ (14), auto-detectado
+    ->amount('3046.18')
+    ->pixKey('financeiro@cartorio.com.br')
+    ->payerRequest('OS 537253')
+    ->addInfo('Ordem de Serviço', '537253'));
 
 $cobranca = $pix->cob()->get($txid);
 ```
+
+> Também aceita array cru (`create($txid, [...])`). O `txid` é validado (`[a-zA-Z0-9]{26,35}`),
+> e chamadas que recebem `401` reautenticam e tentam **uma vez** automaticamente.
 
 ### Webhook — registrar a URL no Sicredi
 

@@ -21,9 +21,14 @@ final class HttpClient
 {
     private Client $guzzle;
 
-    public function __construct(Config $config)
+    /**
+     * @param callable|null $handler handler Guzzle opcional — usado só em testes
+     *                               (ex: GuzzleHttp\Handler\MockHandler). Em
+     *                               produção fica null e o mTLS é aplicado.
+     */
+    public function __construct(Config $config, ?callable $handler = null)
     {
-        $this->guzzle = new Client([
+        $options = [
             'base_uri' => $config->baseUrl(),
             'timeout' => $config->timeout,
             'http_errors' => false,
@@ -32,7 +37,13 @@ final class HttpClient
                 ? [$config->privateKeyPath, $config->keyPassword]
                 : $config->privateKeyPath,
             'verify' => $config->caBundlePath ?? true,
-        ]);
+        ];
+
+        if ($handler !== null) {
+            $options['handler'] = $handler;
+        }
+
+        $this->guzzle = new Client($options);
     }
 
     /**
