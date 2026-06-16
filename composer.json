@@ -1,0 +1,44 @@
+{
+    "name": "mendesalexandre/pix-sicredi",
+    "description": "Integração PIX (cobrança imediata, webhook e devolução) com a API do Banco Sicredi — framework-agnostic.",
+    "type": "library",
+    "keywords": ["pix", "sicredi", "bacen", "pix-api", "cobranca", "webhook", "mtls"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexandre Teixeira Mendes",
+            "email": "alexandre.teixeira.mendes@hotmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "ext-json": "*",
+        "ext-curl": "*",
+        "guzzlehttp/guzzle": "^7.5",
+        "psr/simple-cache": "^2.0 || ^3.0",
+        "psr/log": "^2.0 || ^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5",
+        "phpstan/phpstan": "^1.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "PixSicredi\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PixSicredi\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse --memory-limit=512M"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
