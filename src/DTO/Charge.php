@@ -27,6 +27,7 @@ final class Charge
         public readonly ?string $copyPaste,
         public readonly ?int $expiration,
         public readonly ?DateTimeImmutable $createdAt,
+        public readonly ?string $dueDate = null,
         public readonly array $raw = [],
     ) {
     }
@@ -56,6 +57,7 @@ final class Charge
             copyPaste: self::stringOrNull($data['pixCopiaECola'] ?? null),
             expiration: isset($calendario['expiracao']) ? (int) $calendario['expiracao'] : null,
             createdAt: $createdAt,
+            dueDate: self::stringOrNull($calendario['dataDeVencimento'] ?? null),
             raw: $data,
         );
     }

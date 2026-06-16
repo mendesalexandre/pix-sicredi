@@ -32,14 +32,14 @@ final class ConfigTest extends TestCase
         );
     }
 
-    public function test_default_scopes_cover_cob_pix_webhook_without_cobv(): void
+    public function test_default_scopes_cover_cob_cobv_pix_webhook_without_lotecobv(): void
     {
         $scopes = $this->config()->scopes;
 
         self::assertContains('cob.write', $scopes);
+        self::assertContains('cobv.write', $scopes);
         self::assertContains('webhook.write', $scopes);
         self::assertContains('pix.read', $scopes);
-        self::assertNotContains('cobv.write', $scopes);
         self::assertNotContains('lotecobv.write', $scopes);
     }
 

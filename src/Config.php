@@ -55,8 +55,8 @@ final class Config
     }
 
     /**
-     * Scopes para COB + Webhook + Devolução (escopo usado pelo cartório).
-     * COBV/LoteCobv ficam de fora de propósito — não são usados.
+     * Scopes para COB + COBV + Webhook + Devolução.
+     * LoteCobv fica de fora de propósito.
      *
      * @return list<string>
      */
@@ -65,6 +65,8 @@ final class Config
         return [
             'cob.read',
             'cob.write',
+            'cobv.read',
+            'cobv.write',
             'pix.read',
             'pix.write',
             'webhook.read',

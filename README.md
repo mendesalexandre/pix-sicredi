@@ -2,7 +2,7 @@
 
 Integração PHP **framework-agnostic** com a API PIX do **Banco Sicredi**: cobrança imediata (COB), webhook e devolução, com autenticação **mTLS**.
 
-> Escopo focado no que o cartório usa: **COB + Webhook + Devolução**. COBV / Lote-COBV ficam de fora de propósito.
+> Escopo: **COB + COBV + Webhook + Devolução**. Lote-COBV fica de fora de propósito.
 
 ## Requisitos
 
@@ -65,6 +65,29 @@ $charge = Charge::fromArray($pix->cob()->get($txid));
 
 > Também aceita array cru (`create($txid, [...])`). O `txid` é validado (`[a-zA-Z0-9]{26,35}`),
 > e chamadas que recebem `401` reautenticam e tentam **uma vez** automaticamente.
+
+### Cobrança com vencimento (COBV)
+
+Tem data de vencimento, **endereço do devedor obrigatório** e encargos
+(multa/juros/desconto/abatimento), com as modalidades BACEN tipadas por enum:
+
+```php
+use PixSicredi\Builders\CobvBuilder;
+use PixSicredi\Enums\{FineMode, InterestMode, DiscountMode};
+
+$pix->cobv()->create($txid, CobvBuilder::make()
+    ->dueDate('2026-12-31')
+    ->validityAfterDue(30)
+    ->debtor('05314742160', 'Fulano de Tal')
+    ->debtorAddress('Rua X, 100', 'Sinop', 'MT', '78550000') // obrigatório no COBV
+    ->amount('100.00')
+    ->pixKey('financeiro@cartorio.com.br')
+    ->fine(FineMode::Percentage, '2.00')
+    ->interest(InterestMode::PercentPerCalendarMonth, '1.00')
+    ->discountByDate(DiscountMode::PercentByDate, [['date' => '2026-12-20', 'value' => '5.00']]));
+
+$cobranca = $pix->cobv()->get($txid); // Charge::fromArray(...) também expõe ->dueDate
+```
 
 ### Webhook — registrar a URL no Sicredi
 

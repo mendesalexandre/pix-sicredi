@@ -3,6 +3,17 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 [SemVer](https://semver.org/lang/pt-BR/).
 
+## [0.2.0] — 2026-06-16
+
+### Adicionado — Cobrança com vencimento (COBV)
+
+- `Cobv` resource: create/get/update/list em `/api/v2/cobv`.
+- `CobvBuilder`: vencimento, `validadeAposVencimento`, devedor + **endereço obrigatório**,
+  e encargos multa/juros/desconto/abatimento.
+- Enums de modalidade BACEN: `FineMode`, `InterestMode`, `DiscountMode`, `AbatementMode`.
+- `cobv()` na fachada; scopes `cobv.*` no padrão; `Charge::$dueDate`.
+- Testes do builder e do resource (mockado): 47 testes no total.
+
 ## [0.1.0] — 2026-06-16
 
 ### Adicionado

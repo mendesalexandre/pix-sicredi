@@ -6,6 +6,7 @@ namespace PixSicredi;
 
 use PixSicredi\Http\HttpClient;
 use PixSicredi\Resources\Cob;
+use PixSicredi\Resources\Cobv;
 use PixSicredi\Resources\Pix;
 use PixSicredi\Resources\Webhook;
 use PixSicredi\Webhook\WebhookHandler;
@@ -45,6 +46,11 @@ final class PixSicredi
     public function cob(): Cob
     {
         return new Cob($this->config, $this->http, $this->auth);
+    }
+
+    public function cobv(): Cobv
+    {
+        return new Cobv($this->config, $this->http, $this->auth);
     }
 
     public function webhook(): Webhook
