@@ -6,6 +6,7 @@ namespace PixSicredi\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use PixSicredi\DTO\Charge;
+use PixSicredi\Enums\ChargeStatus;
 
 final class ChargeTest extends TestCase
 {
@@ -40,5 +41,24 @@ final class ChargeTest extends TestCase
         self::assertNull($charge->location);
         self::assertNull($charge->copyPaste);
         self::assertNull($charge->createdAt);
+        self::assertNull($charge->statusEnum());
+        self::assertFalse($charge->isPaid());
+        self::assertFalse($charge->isActive());
+    }
+
+    public function test_typed_status_helpers(): void
+    {
+        $paga = Charge::fromArray(['txid' => 'T', 'status' => 'CONCLUIDA']);
+        self::assertSame(ChargeStatus::Concluida, $paga->statusEnum());
+        self::assertTrue($paga->isPaid());
+        self::assertFalse($paga->isActive());
+
+        $ativa = Charge::fromArray(['txid' => 'T', 'status' => 'ATIVA']);
+        self::assertTrue($ativa->isActive());
+        self::assertFalse($ativa->isPaid());
+
+        // status desconhecido não quebra
+        $estranho = Charge::fromArray(['txid' => 'T', 'status' => 'FOO']);
+        self::assertNull($estranho->statusEnum());
     }
 }

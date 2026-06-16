@@ -23,5 +23,6 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e
 - `Charge`: DTO com visão tipada da resposta da cobrança (status, amount, location,
   pixCopiaECola/copyPaste, expiration, createdAt) + `raw`.
 - `Txid`: gera `txid` válido — `random()` ou `fromSeed()` (determinístico, idempotente).
+- `ChargeStatus` (enum BACEN) + `Charge::statusEnum()/isPaid()/isActive()`.
 - Framework-agnostic (Guzzle + PSR-16/PSR-3). 38 testes PHPUnit (com HTTP mockado,
   incluindo Webhook/Pix e auto-retry 401) + PHPStan level 8.

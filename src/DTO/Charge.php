@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PixSicredi\DTO;
 
 use DateTimeImmutable;
+use PixSicredi\Enums\ChargeStatus;
 
 /**
  * Visão tipada da resposta de uma cobrança (COB) — criação ou consulta.
@@ -57,6 +58,24 @@ final class Charge
             createdAt: $createdAt,
             raw: $data,
         );
+    }
+
+    /** Status como enum (null se desconhecido/ausente). */
+    public function statusEnum(): ?ChargeStatus
+    {
+        return $this->status !== null ? ChargeStatus::tryFrom($this->status) : null;
+    }
+
+    /** Cobrança paga/liquidada (status CONCLUIDA). */
+    public function isPaid(): bool
+    {
+        return $this->statusEnum()?->isPaid() ?? false;
+    }
+
+    /** Cobrança aberta, aguardando pagamento (status ATIVA). */
+    public function isActive(): bool
+    {
+        return $this->statusEnum()?->isActive() ?? false;
     }
 
     private static function stringOrNull(mixed $value): ?string
