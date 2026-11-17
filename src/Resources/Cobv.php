@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PixSicredi\Resources;
 
 use PixSicredi\Builders\CobvBuilder;
+use PixSicredi\Enums\ChargeStatus;
 use PixSicredi\Exceptions\ValidationException;
 
 /**
@@ -45,6 +46,17 @@ final class Cobv extends Resource
         $this->assertTxid($txid);
 
         return $this->call('PATCH', "/cobv/{$txid}", $this->payload($data))->json();
+    }
+
+    /**
+     * Cancels a due-date charge that is still ACTIVE and unpaid (PATCH status REMOVIDA_PELO_USUARIO_RECEBEDOR).
+     * Not a refund: see `Pix::refund()`.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancel(string $txid): array
+    {
+        return $this->update($txid, ['status' => ChargeStatus::RemovidaPeloUsuarioRecebedor->value]);
     }
 
     /**

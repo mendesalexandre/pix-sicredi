@@ -108,3 +108,13 @@ Expired charges are reported by the PSP; poll or use the webhook rather than com
 - Behavior of cancelling an already-expired charge.
 - `cobv` end to end in production (covered by unit tests with a mocked HTTP layer only).
 - Webhook retries/redelivery policy and ordering.
+
+## Verified 2026-11-16 (production, R$ 0.01)
+
+- **`cobv` lifecycle works:** `PUT /cobv/{txid}` (with due date, debtor address, `validadeAposVencimento`) → `ATIVA`
+  with `pixCopiaECola`; `GET` returns `calendario.dataDeVencimento`/`validadeAposVencimento`; `PATCH`
+  `{"status":"REMOVIDA_PELO_USUARIO_RECEBEDOR"}` cancels it (`Cobv::cancel()`).
+- **Webhook not registered:** `GET /webhook/{chave}` answers `404 "Webhook não encontrado."` when no URL was ever
+  registered for that key. Treat 404 as "none configured", not as a failure.
+- **Not yet verified:** registering a webhook (`PUT`), the real notification body of a paid Pix, and the
+  validation call. Pending a public HTTPS endpoint with mTLS.

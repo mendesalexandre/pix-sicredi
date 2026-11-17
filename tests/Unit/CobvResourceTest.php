@@ -44,6 +44,22 @@ final class CobvResourceTest extends TestCase
         self::assertStringContainsString('"dataDeVencimento":"2026-12-31"', (string) $request->getBody());
     }
 
+    public function test_cancel_patches_status_on_cobv_endpoint(): void
+    {
+        $http = $this->httpClient([
+            $this->tokenResponse(),
+            $this->jsonResponse(200, ['txid' => self::TXID, 'status' => 'REMOVIDA_PELO_USUARIO_RECEBEDOR']),
+        ]);
+
+        $result = $this->cobv($http)->cancel(self::TXID);
+
+        self::assertSame('REMOVIDA_PELO_USUARIO_RECEBEDOR', $result['status']);
+        $request = $this->history[1]['request'];
+        self::assertSame('PATCH', $request->getMethod());
+        self::assertSame('/api/v2/cobv/' . self::TXID, $request->getUri()->getPath());
+        self::assertSame('{"status":"REMOVIDA_PELO_USUARIO_RECEBEDOR"}', (string) $request->getBody());
+    }
+
     public function test_invalid_txid_throws_without_calling_api(): void
     {
         $http = $this->httpClient([]); // nenhuma resposta: não pode chamar a API
