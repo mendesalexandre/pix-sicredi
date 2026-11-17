@@ -65,4 +65,31 @@ final class CobBuilderTest extends TestCase
         $this->expectException(ValidationException::class);
         CobBuilder::make()->amount('10.00')->pixKey('x')->toArray(); // sem devedor
     }
+
+    public function test_expires_at_converts_a_moment_into_seconds(): void
+    {
+        $from = new \DateTimeImmutable('2026-11-16 21:00:00', new \DateTimeZone('America/Cuiaba'));
+        $until = new \DateTimeImmutable('2026-11-17 08:00:00', new \DateTimeZone('America/Cuiaba'));
+
+        $payload = CobBuilder::make()->expiresAt($until, $from)
+            ->debtor('05314742160', 'Fulano')->amount('10.00')->pixKey('chave')->toArray();
+
+        self::assertSame(39600, $payload['calendario']['expiracao']); // 11 h
+    }
+
+    public function test_expires_at_rejects_moments_that_are_too_close_or_past(): void
+    {
+        $from = new \DateTimeImmutable('2026-11-16 21:00:00');
+
+        $this->expectException(ValidationException::class);
+        CobBuilder::make()->expiresAt($from->modify('+30 seconds'), $from);
+    }
+
+    public function test_expires_at_enforces_the_optional_maximum(): void
+    {
+        $from = new \DateTimeImmutable('2026-11-16 21:00:00');
+
+        $this->expectException(ValidationException::class);
+        CobBuilder::make()->expiresAt($from->modify('+31 days'), $from, 60, 30 * 86400);
+    }
 }

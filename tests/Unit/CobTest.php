@@ -57,6 +57,28 @@ final class CobTest extends TestCase
         self::assertStringContainsString('"chave":"chave"', $body);
     }
 
+    public function test_cancel_patches_status_removed_by_receiver(): void
+    {
+        $http = $this->httpClient([
+            $this->tokenResponse(),
+            $this->jsonResponse(200, ['txid' => self::TXID, 'status' => 'REMOVIDA_PELO_USUARIO_RECEBEDOR']),
+        ]);
+
+        $result = $this->cob($http)->cancel(self::TXID);
+
+        self::assertSame('REMOVIDA_PELO_USUARIO_RECEBEDOR', $result['status']);
+        $request = $this->history[1]['request'];
+        self::assertSame('PATCH', $request->getMethod());
+        self::assertSame('/api/v2/cob/' . self::TXID, $request->getUri()->getPath()); // never /devolucao
+        self::assertSame('{"status":"REMOVIDA_PELO_USUARIO_RECEBEDOR"}', (string) $request->getBody());
+    }
+
+    public function test_cancel_validates_txid_without_calling_api(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->cob($this->httpClient([]))->cancel('short');
+    }
+
     public function test_invalid_txid_throws_without_calling_api(): void
     {
         $http = $this->httpClient([]); // nenhuma resposta: não pode chamar a API

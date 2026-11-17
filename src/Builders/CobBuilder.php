@@ -49,6 +49,36 @@ final class CobBuilder
         return $this;
     }
 
+    /**
+     * Makes the charge valid until a given moment. An immediate charge (`cob`) only accepts a lifetime in
+     * seconds counted from creation, so "valid until day X at 08:00" has to be converted: this does it.
+     *
+     * Sicredi accepted up to at least 400 days in a real test, so the PSP is not the limit — pass `$maxSeconds`
+     * to enforce your own policy.
+     *
+     * @param \DateTimeInterface      $until      moment the charge stops being payable
+     * @param \DateTimeInterface|null $from       reference "now" (defaults to the current time; useful in tests)
+     * @param int                     $minSeconds smallest lifetime accepted
+     * @param int|null                $maxSeconds largest lifetime accepted (null = no limit)
+     */
+    public function expiresAt(
+        \DateTimeInterface $until,
+        ?\DateTimeInterface $from = null,
+        int $minSeconds = 60,
+        ?int $maxSeconds = null,
+    ): self {
+        $seconds = $until->getTimestamp() - ($from ?? new \DateTimeImmutable())->getTimestamp();
+
+        if ($seconds < $minSeconds) {
+            throw new ValidationException("expiresAt must be at least {$minSeconds} seconds ahead.");
+        }
+        if ($maxSeconds !== null && $seconds > $maxSeconds) {
+            throw new ValidationException("expiresAt must be at most {$maxSeconds} seconds ahead.");
+        }
+
+        return $this->expiration($seconds);
+    }
+
     /** Devedor por CPF (11 dígitos) ou CNPJ (14) — detectado pelo tamanho. */
     public function debtor(string $document, string $name): self
     {

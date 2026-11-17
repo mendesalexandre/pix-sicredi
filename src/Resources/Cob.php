@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PixSicredi\Resources;
 
 use PixSicredi\Builders\CobBuilder;
+use PixSicredi\Enums\ChargeStatus;
 use PixSicredi\Exceptions\ValidationException;
 
 /**
@@ -59,8 +60,22 @@ final class Cob extends Resource
     }
 
     /**
-     * Lista cobranças por período (datas em ISO 8601). Filtros extras opcionais:
-     * cpf, cnpj, status, paginacao.paginaAtual, paginacao.itensPorPagina.
+     * Cancels a charge that is still ACTIVE and unpaid (PATCH status REMOVIDA_PELO_USUARIO_RECEBEDOR).
+     *
+     * This is NOT a refund: refunding money already received is `Pix::refund()` (`/pix/{e2eid}/devolucao/{id}`).
+     * A paid charge cannot be cancelled — the PSP rejects it.
+     *
+     * @return array<string,mixed>
+     */
+    public function cancel(string $txid): array
+    {
+        return $this->update($txid, ['status' => ChargeStatus::RemovidaPeloUsuarioRecebedor->value]);
+    }
+
+    /**
+     * Lists charges in a period (ISO 8601 dates). The Sicredi API answers 400 with an empty body when `end`
+     * is in the future, so pass "now" or earlier. Optional filters: cpf, cnpj, status,
+     * paginacao.paginaAtual, paginacao.itensPorPagina.
      *
      * @param array<string,scalar> $extraFilters
      * @return array<string,mixed>
