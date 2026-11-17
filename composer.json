@@ -1,6 +1,6 @@
 {
     "name": "mendesalexandre/pix-sicredi",
-    "description": "Integração PIX (cobrança imediata, webhook e devolução) com a API do Banco Sicredi — framework-agnostic.",
+    "description": "Sicredi Pix API integration (immediate and due-date charges, webhook, refunds) with mTLS — framework-agnostic, no database.",
     "type": "library",
     "keywords": ["pix", "sicredi", "bacen", "pix-api", "cobranca", "webhook", "mtls"],
     "license": "MIT",

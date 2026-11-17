@@ -1,22 +1,27 @@
 # pix-sicredi
 
-Integração PHP **framework-agnostic** com a API PIX do **Banco Sicredi**: cobrança imediata (COB), webhook e devolução, com autenticação **mTLS**.
+Framework-agnostic PHP SDK for the **Sicredi** Pix API: immediate charges (`cob`), charges with due date
+(`cobv`), webhook and refunds, with **mTLS** authentication.
 
-> Escopo: **COB + COBV + Webhook + Devolução**. Lote-COBV fica de fora de propósito.
+- No framework, **no database, no migrations** — you keep persistence in your application.
+- Typed builders, DTOs and enums, and plain arrays whenever you prefer them.
+- Documents what the Sicredi API actually does, with evidence: [docs/sicredi-api-notes.md](docs/sicredi-api-notes.md).
 
-## Requisitos
+> Status: **experimental (`0.x`)**. Unit-tested with mocked HTTP; real-API behavior verified manually and dated in
+> the notes. Out of scope on purpose: batch of due charges (`lotecobv`) and payload locations (`loc`).
 
-- PHP 8.1+
-- ext-curl, ext-json
-- Certificado **da aplicação** (cliente) + chave privada emitidos pelo Sicredi
+## Requirements
 
-## Instalação
+- PHP 8.1+, `ext-curl`, `ext-json`
+- The application's **client certificate** and private key issued by Sicredi
+
+## Installation
 
 ```bash
 composer require mendesalexandre/pix-sicredi
 ```
 
-## Uso
+## Usage
 
 ```php
 use PixSicredi\PixSicredi;
@@ -24,52 +29,69 @@ use PixSicredi\Config;
 use PixSicredi\Enums\Environment;
 
 $pix = new PixSicredi(new Config(
-    clientId:        'SEU_CLIENT_ID',
-    clientSecret:    'SEU_CLIENT_SECRET',
-    certificatePath: '/caminho/certificado.pem',
-    privateKeyPath:  '/caminho/aplicacao.key',
-    environment:     Environment::Production,  // ou Homologation
-    keyPassword:     null,                     // se a chave tiver senha
-    cache:           $psr16Cache,              // opcional: cacheia o token (~5 min)
-    logger:          $psr3Logger,              // opcional
+    clientId:        'YOUR_CLIENT_ID',
+    clientSecret:    'YOUR_CLIENT_SECRET',
+    certificatePath: '/path/certificate.pem',
+    privateKeyPath:  '/path/application.key',
+    environment:     Environment::Production,  // or Homologation
+    keyPassword:     null,                     // if the private key has a passphrase
+    cache:           $psr16Cache,              // optional: caches the token (~5 min)
+    logger:          $psr3Logger,              // optional
 ));
 ```
 
-### Criar cobrança (COB)
-
-Com o `CobBuilder` (tipado, detecta CPF/CNPJ, valida valor/campos):
+### Create an immediate charge (`cob`)
 
 ```php
 use PixSicredi\Builders\CobBuilder;
 use PixSicredi\Support\Txid;
 use PixSicredi\DTO\Charge;
 
-$txid = Txid::fromSeed('OS-537253'); // determinístico → idempotente (ou Txid::random())
+$txid = Txid::fromSeed('ORDER-537253'); // deterministic => idempotent (or Txid::random())
 
-$resposta = $pix->cob()->create($txid, CobBuilder::make()
-    ->expiration(3600)
-    ->debtor('05314742160', 'Fulano de Tal')   // CPF (11) ou CNPJ (14), auto-detectado
+$answer = $pix->cob()->create($txid, CobBuilder::make()
+    ->expiration(3600)                         // seconds from creation
+    ->debtor('05314742160', 'Jane Doe')        // CPF (11) or CNPJ (14), auto-detected
     ->amount('3046.18')
-    ->pixKey('financeiro@cartorio.com.br')
-    ->payerRequest('OS 537253')
-    ->addInfo('Ordem de Serviço', '537253'));
+    ->pixKey('billing@example.com')
+    ->payerRequest('Order 537253')
+    ->addInfo('Order', '537253'));
 
-// Acesso tipado à resposta (copia-e-cola pra montar o QR no front):
-$charge = Charge::fromArray($resposta);
+$charge = Charge::fromArray($answer);
 echo $charge->status;     // "ATIVA"
-echo $charge->copyPaste;  // "00020126..." (pixCopiaECola)
-echo $charge->location;   // URL do payload
+echo $charge->copyPaste;  // "00020126..." — build the QR code from this string
+echo $charge->location;   // payload URL
 
 $charge = Charge::fromArray($pix->cob()->get($txid));
 ```
 
-> Também aceita array cru (`create($txid, [...])`). O `txid` é validado (`[a-zA-Z0-9]{26,35}`),
-> e chamadas que recebem `401` reautenticam e tentam **uma vez** automaticamente.
+Arrays work too: `create($txid, [...])`. The `txid` is validated (`[a-zA-Z0-9]{26,35}`) before any request, and a
+`401` triggers one automatic re-authentication.
 
-### Cobrança com vencimento (COBV)
+### Valid until a given day and hour
 
-Tem data de vencimento, **endereço do devedor obrigatório** e encargos
-(multa/juros/desconto/abatimento), com as modalidades BACEN tipadas por enum:
+`cob` only takes a lifetime in **seconds from creation**. `expiresAt()` converts "until day X at 08:00":
+
+```php
+$pix->cob()->create($txid, CobBuilder::make()
+    ->expiresAt(new DateTimeImmutable('2026-12-01 08:00', new DateTimeZone('America/Cuiaba')),
+                maxSeconds: 30 * 86400)        // optional policy limit; Sicredi itself accepted 400+ days
+    ->debtor('05314742160', 'Jane Doe')
+    ->amount('100.00')
+    ->pixKey('billing@example.com'));
+```
+
+### Cancel a charge
+
+```php
+$pix->cob()->cancel($txid);   // PATCH status REMOVIDA_PELO_USUARIO_RECEBEDOR — only while ATIVA and unpaid
+```
+
+This is **not** a refund (see below).
+
+### Charge with due date (`cobv`)
+
+Has a due date, a **mandatory debtor address** and charges (fine, interest, discount, abatement) typed by enum:
 
 ```php
 use PixSicredi\Builders\CobvBuilder;
@@ -78,114 +100,84 @@ use PixSicredi\Enums\{FineMode, InterestMode, DiscountMode};
 $pix->cobv()->create($txid, CobvBuilder::make()
     ->dueDate('2026-12-31')
     ->validityAfterDue(30)
-    ->debtor('05314742160', 'Fulano de Tal')
-    ->debtorAddress('Rua X, 100', 'Sinop', 'MT', '78550000') // obrigatório no COBV
+    ->debtor('05314742160', 'Jane Doe')
+    ->debtorAddress('Street X, 100', 'Sinop', 'MT', '78550000')
     ->amount('100.00')
-    ->pixKey('financeiro@cartorio.com.br')
+    ->pixKey('billing@example.com')
     ->fine(FineMode::Percentage, '2.00')
     ->interest(InterestMode::PercentPerCalendarMonth, '1.00')
     ->discountByDate(DiscountMode::PercentByDate, [['date' => '2026-12-20', 'value' => '5.00']]));
 
-$cobranca = $pix->cobv()->get($txid); // Charge::fromArray(...) também expõe ->dueDate
+$charge = Charge::fromArray($pix->cobv()->get($txid)); // also exposes ->dueDate
 ```
 
-### Webhook — registrar a URL no Sicredi
+### Webhook
+
+Register your URL, then receive notifications. Full guidance in [docs/webhook.md](docs/webhook.md).
 
 ```php
-$pix->webhook()->configure('financeiro@cartorio.com.br', 'https://seu-site.com.br/webhook/pix');
-$pix->webhook()->get('financeiro@cartorio.com.br');
-$pix->webhook()->delete('financeiro@cartorio.com.br');
+$pix->webhook()->configure('billing@example.com', 'https://example.com/webhook/pix');
 ```
-
-### Webhook — receber a notificação (receiver)
-
-O Sicredi faz um `POST` na sua URL quando um pix é pago. O pacote interpreta o corpo
-e dispara um **`PixReceivedEvent`** pra cada pix recebido — você registra um listener
-com `onPixReceived()` e é lá que a **baixa** acontece. Exemplo em Laravel:
 
 ```php
 use PixSicredi\Events\PixReceivedEvent;
 
-// routes/api.php  →  Route::post('/webhook/pix', PixWebhookController::class)
-public function __invoke(Request $request)
-{
-    $handler = (new PixSicredi($config))->webhookHandler()
-        ->withExpectedKeys(['financeiro@cartorio.com.br'])           // defesa extra
-        ->onPixReceived(function (PixReceivedEvent $event) {          // <- a baixa acontece aqui
-            DarBaixaPixJob::dispatch(
-                $event->pix->txid,
-                $event->pix->endToEndId,
-                $event->pix->amount,
-            );
-        });
+$handler = $pix->webhookHandler()
+    ->withExpectedKeys(['billing@example.com'])
+    ->onPixReceived(function (PixReceivedEvent $event) {
+        // dispatch your own job/event; $event->pix->txid, ->endToEndId, ->amount
+    });
 
-    if ($handler->isValidationCall($request->getContent())) {
-        return response()->json([], 200); // validação do Sicredi
-    }
-
-    $handler->handle($request->getContent()); // parseia + dispara o evento pra cada pix
-
-    return response()->json([], 200);
+if ($handler->isValidationCall($rawBody)) {
+    return ok();
 }
+$handler->handle($rawBody);   // parse + emit one event per received Pix
 ```
 
-> Em Laravel o listener costuma só **re-emitir um evento nativo** (`event(new PixRecebido(...))`)
-> ou **despachar um job**, mantendo a lógica de baixa no fluxo normal do framework.
-> Se quiser só os dados, sem evento, use `$handler->parse($body)` (retorna `ReceivedPix[]`).
+> **Security:** Sicredi authenticates the webhook with **mTLS**. Verify the client certificate at the edge (nginx
+> `ssl_verify_client on`) or in your app — the handler only parses.
 
-> **Segurança:** o Sicredi autentica o webhook por **mTLS** (apresenta certificado de cliente).
-> Valide-o na borda (nginx `ssl_verify_client on`) ou na aplicação — o handler só faz o parsing.
-
-### Devolução
+### Refund
 
 ```php
 use PixSicredi\DTO\Refund;
 
-$refund = Refund::fromArray($pix->pix()->refund($endToEndId, 'idDevolucao01', '10.00', 'estorno'));
+$refund = Refund::fromArray($pix->pix()->refund($endToEndId, 'refundId01', '10.00', 'reason'));
 $refund->isCompleted(); // status DEVOLVIDO
 ```
 
-### Validar/detectar chave PIX
+### Validate / detect a Pix key
 
 ```php
 use PixSicredi\Support\PixKey;
 
-PixKey::type('financeiro@cartorio.com.br'); // PixKeyType::Email
-PixKey::type('+5566999998888');             // PixKeyType::Phone
-PixKey::isValid('05314742160');             // true (CPF)
+PixKey::type('billing@example.com'); // PixKeyType::Email
+PixKey::type('+5566999998888');      // PixKeyType::Phone
+PixKey::isValid('05314742160');      // true (CPF)
 ```
 
-## Notas de implementação
+## Implementation notes
 
-- **Auth:** OAuth2 `client_credentials` + Basic + mTLS. O `grant_type` vai **só no corpo**
-  (form-urlencoded). Repetir na query da URL do token faz o Sicredi rejeitar com
-  `400 gerarToken.grantType inválido`.
-- **Endpoints:** base `https://api-pix.sicredi.com.br`, API em `/api/v2`, OAuth em `/oauth/token`.
-- **Erros:** `RequestException` preserva `statusCode`, `corpoBruto` e `violacoes[]` (objeto BACEN).
+- **Auth:** OAuth2 `client_credentials` + Basic + mTLS. `grant_type` goes **only in the body**; repeating it in the
+  token URL query makes Sicredi answer `400 gerarToken.grantType inválido`.
+- **Endpoints:** base `https://api-pix.sicredi.com.br`, API under `/api/v2`, OAuth at `/oauth/token`.
+- **Errors:** `RequestException` keeps `statusCode`, the raw body and `violacoes[]` (Bacen error object).
+- More quirks (listing, lifetime limits, cancel vs refund): [docs/sicredi-api-notes.md](docs/sicredi-api-notes.md).
 
-## Testes
+## Documentation
+
+See [docs/](docs/README.md): architecture, webhook, Laravel integration without migrations, security, testing,
+roadmap and the Sicredi API notes.
+
+## Tests
 
 ```bash
-composer test   # PHPUnit (unitários)
+composer test   # PHPUnit (unit, mocked HTTP)
 composer stan   # PHPStan level 8
 ```
 
-### Teste de integração (homologação)
+Integration tests against the real API auto-skip without credentials — see [docs/testing.md](docs/testing.md).
 
-Os testes em `tests/Integration` batem na API real do Sicredi e **pulam
-automaticamente** se as variáveis abaixo não estiverem definidas (por isso o CI
-fica verde). Pra rodar:
-
-```bash
-export PIXSICREDI_CLIENT_ID=...      PIXSICREDI_CLIENT_SECRET=...
-export PIXSICREDI_CERT=/path/cert.pem PIXSICREDI_KEY=/path/app.key
-export PIXSICREDI_PIX_KEY=sua-chave-recebedora
-# opcionais: PIXSICREDI_KEY_PASS, PIXSICREDI_AMOUNT (default 0.01),
-#            PIXSICREDI_ENV (homologation|production), PIXSICREDI_CA
-
-vendor/bin/phpunit --testsuite Integration
-```
-
-## Licença
+## License
 
 MIT.
